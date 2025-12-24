@@ -1,4 +1,4 @@
-#!/bin/sh
+s#!/bin/sh
 set -e
 
 node generate-sitemap.js
