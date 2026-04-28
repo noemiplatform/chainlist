@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+# =========================
+# Noemi Nexus Core Engine
+# Owner-Gated Build Orchestrator
+# =========================
+
+set -euo pipefail
+
+### CONFIG
+ALLOWED_USERS=("Lashawn Spencer" "Justice Spencer" "Dorothy Aragon")
+
+PROJECT_NAME="Noemi Nexus"
+LOG_FILE="./nexus.log"
+
+### UTILS
+log() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+fail() {
+  log "❌ FAILURE: $1"
+  exit 1
+}
+
+check_user() {
+  CURRENT_USER="${NEXUS_USER:-unknown}"
+
+  for u in "${ALLOWED_USERS[@]}"; do
+    if [[ "$CURRENT_USER" == "$u" ]]; then
+      log "✅ Authorized user: $CURRENT_USER"
+      return 0
+    fi
+  done
+
+  fail "Unauthorized user: $CURRENT_USER"
+}
+
+check_env() {
+  log "🔍 Checking environment..."
+
+  command -v node >/dev/null 2>&1 || fail "Node.js not installed"
+  command -v npm >/dev/null 2>&1 || fail "npm not installed"
+
+  [[ -f package.json ]] || fail "package.json missing"
+  [[ -d node_modules ]] || {
+    log "📦 Installing dependencies..."
+    npm install
+  }
+
+  log "✅ Environment ready"
+}
+
+run_stage() {
+  STAGE_NAME="$1"
+  COMMAND="$2"
+
+  log "🚀 Stage: $STAGE_NAME"
+
+  if eval "$COMMAND"; then
+    log "✅ Completed: $STAGE_NAME"
+  else
+    fail "Stage failed: $STAGE_NAME"
+  fi
+}
+
+prebuild() {
+  log "🧬 Prebuild normalization running..."
+
+  # safe hooks (NO file mutation hacks)
+  npm run lint >/dev/null 2>&1 || log "⚠️ lint skipped or not defined"
+}
+
+build() {
+  log "🏗️ Building project..."
+  npm run build
+}
+
+export_stage() {
+  log "📤 Exporting outputs..."
+  npm run export || log "⚠️ export step skipped"
+}
+
+postbuild() {
+  log "🧹 Postbuild cleanup..."
+
+  # safe cleanup only
+  rm -rf .cache || true
+  rm -rf dist/tmp || true
+}
+
+deploy_gate() {
+  log "🔐 Deployment gate check..."
+
+  if [[ "${NEXUS_DEPLOY:-false}" != "true" ]]; then
+    log "🚫 Deployment skipped (NEXUS_DEPLOY != true)"
+    return 0
+  fi
+
+  log "🚀 Deployment authorized"
+  npm run deploy || fail "Deployment failed"
+}
+
+### MAIN
+log "=================================="
+log "Starting $PROJECT_NAME Core Engine"
+log "=================================="
+
+check_user
+check_env
+
+run_stage "Prebuild" prebuild
+run_stage "Build" build
+run_stage "Export" export_stage
+run_stage "Postbuild" postbuild
+run_stage "Deploy Gate" deploy_gate
+
+log "🎉 Nexus pipeline complete"
+log "=================================="
