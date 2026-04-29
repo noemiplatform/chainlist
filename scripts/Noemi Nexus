@@ -554,4 +554,4 @@ git commit -m "Noemi Nexus enterprise production system"
 
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/noemi-nexus.git
-git push -u origin mainhttps://github.com/YOUR_USERNAME/noemi-nexus.gitinit-noemi-nexus.sh-noemi-nexus.sh
+git push -u origin mainhttps://github.com/YOUR_USERNAME/noemi-nexus.gitinit-noemi-nexus.sh-noemi-nexus.shhttps://github.com/YOUR_USERNAME/noemi-nexus.gitREADME.mdNode.jshttp://localhost:3000app.postprocess.env.PORThttp://frontend:3000/3000http://localhostinit-noemi-nexus.sh-noemi-nexus.sh
