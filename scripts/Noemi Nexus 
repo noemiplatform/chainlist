@@ -232,4 +232,15 @@ run_stage "Postbuild" postbuild
 run_stage "Deploy Gate" deploy_gate
 
 log "🎉 Nexus pipeline complete"
-log "=================================="
+log "=================================="chmod +x init-noemi-nexus.sh
+./init-noemi-nexus.sh
+
+cd noemi-nexus
+
+git init
+git add .
+git commit -m "Noemi Nexus enterprise production system"
+
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/noemi-nexus.git
+git push -u origin main
