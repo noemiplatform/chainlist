@@ -1,4 +1,328 @@
-https://github.com/YOUR_USERNAME/noemi-nexus.git#!/bin/bash
+#!/usr/bin/env bash
+set -e
+
+PROJECT="noemi-nexus"
+
+echo "🚀 Bootstrapping $PROJECT (enterprise-ready)..."
+
+# ---------- ROOT ----------
+mkdir -p $PROJECT && cd $PROJECT
+mkdir -p backend/services frontend/src .github/workflows docker
+
+# ---------- ROOT FILES ----------
+cat > README.md <<'EOF'
+# 🚀 Noemi Nexus
+
+Private enterprise blockchain intelligence + governance system.
+
+## Stack
+- Backend: Node.js (Express, JWT, security middleware)
+- Frontend: React (Vite)
+- Reverse Proxy: Nginx
+- Orchestration: Docker Compose
+
+## Run (local)
+docker compose up --build
+
+## Ownership
+- Lashawn Spencer
+- Justine Spencer
+- Dorothy Aragon
+
+PRIVATE — AUTHORIZED USE ONLY
+EOF
+
+cat > LICENSE.md <<'EOF'
+NOEMI NEXUS — RESTRICTED ENTERPRISE LICENSE
+
+Proprietary and confidential. No use, modification, deployment, or distribution
+without written authorization from:
+- Lashawn Spencer
+- Justine Spencer
+- Dorothy Aragon
+EOF
+
+cat > .env.example <<'EOF'
+# Backend
+PORT=5000
+API_KEY=change_me
+JWT_SECRET=change_me
+ALLOWED_ORIGIN=http://localhost:3000
+
+# Chain / Integrations (fill when ready)
+RPC_URL=
+CONTRACT_ADDRESS=
+SHEET_ID=
+OPENAI_KEY=
+EOF
+
+# ---------- BACKEND ----------
+cat > backend/package.json <<'EOF'
+{
+  "name": "noemi-nexus-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0"
+  }
+}
+EOF
+
+cat > backend/server.js <<'EOF'
+/*
+  NOEMI NEXUS — PRIVATE SYSTEM
+*/
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const jwt = require('jsonwebtoken');
+
+const app = express();
+
+app.use(helmet());
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN || "*" }));
+app.use(express.json());
+app.use(morgan('combined'));
+
+// ---- simple service auth (API key) ----
+function serviceAuth(req, res, next) {
+  const key = req.headers['x-api-key'];
+  if (!key || key !== process.env.API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// ---- user auth (JWT) ----
+function userAuth(req, res, next) {
+  const token = (req.headers.authorization || "").split(" ")[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+}
+
+// ---- health ----
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'noemi-nexus-backend' });
+});
+
+// ---- demo login (dev only) ----
+app.post('/api/login', (req, res) => {
+  const { user = 'admin', role = 'owner' } = req.body || {};
+  const token = jwt.sign({ user, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  res.json({ token });
+});
+
+// ---- protected feed (stub) ----
+app.get('/api/noemi-feed', serviceAuth, async (req, res) => {
+  // TODO: merge Google Sheets + chain events
+  const rows = [
+    { time: new Date().toISOString(), type: 'GOAL', value: 1, source: 'stub' },
+    { time: new Date().toISOString(), type: 'FEATURE', value: 1, source: 'stub' }
+  ];
+  res.json({ rows });
+});
+
+// ---- metrics (stub) ----
+app.get('/api/metrics', userAuth, (req, res) => {
+  res.json({
+    activity: 2,
+    velocity: 1,
+    momentum: 5,
+    riskScore: "MEDIUM"
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on ${PORT}`);
+});
+EOF
+
+# ---------- FRONTEND ----------
+cat > frontend/package.json <<'EOF'
+{
+  "name": "noemi-nexus-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3000"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
+EOF
+
+cat > frontend/index.html <<'EOF'
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Noemi Nexus</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+EOF
+
+cat > frontend/src/main.jsx <<'EOF'
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+
+createRoot(document.getElementById("root")).render(<App />);
+EOF
+
+cat > frontend/src/App.jsx <<'EOF'
+import { useEffect, useState } from "react";
+
+export default function App() {
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/noemi-feed", {
+      headers: { "x-api-key": "change_me" }
+    })
+      .then(r => r.json())
+      .then(d => setRows(d.rows || []))
+      .catch(() => setRows([]));
+  }, []);
+
+  return (
+    <div style={{ padding: 20, fontFamily: "monospace" }}>
+      <h1>Noemi Nexus — Live Feed</h1>
+      {rows.map((r, i) => (
+        <div key={i}>
+          {r.time} — {r.type} — {r.value}
+        </div>
+      ))}
+    </div>
+  );
+}
+EOF
+
+# ---------- NGINX ----------
+cat > docker/nginx.conf <<'EOF'
+events {}
+
+http {
+  server {
+    listen 80;
+
+    location /api/ {
+      proxy_pass http://backend:5000/api/;
+    }
+
+    location / {
+      proxy_pass http://frontend:3000/;
+    }
+  }
+}
+EOF
+
+# ---------- DOCKERFILES ----------
+cat > docker/Dockerfile.backend <<'EOF'
+FROM node:20
+WORKDIR /app
+COPY backend/package.json ./
+RUN npm install
+COPY backend .
+EXPOSE 5000
+CMD ["npm","start"]
+EOF
+
+cat > docker/Dockerfile.frontend <<'EOF'
+FROM node:20
+WORKDIR /app
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend .
+EXPOSE 3000
+CMD ["npm","run","preview"]
+EOF
+
+# ---------- DOCKER COMPOSE ----------
+cat > docker-compose.yml <<'EOF'
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - frontend
+EOF
+
+# ---------- CI/CD ----------
+cat > .github/workflows/deploy.yml <<'EOF'
+name: Deploy Noemi Nexus
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker compose build
+EOF
+
+cat > .github/CODEOWNERS <<'EOF'
+* @LashawnSpencer @JustineSpencer @DorothyAragon
+EOF
+
+echo "✅ $PROJECT created."
+echo "👉 Next steps:"
+echo "1) cp .env.example .env  (edit secrets)"
+echo "2) docker compose up --build"
+echo "3) open http://localhost"
+echo "4) git init && push to GitHub"https://github.com/YOUR_USERNAME/noemi-nexus.git#!/bin/bash
 
 PROJECT="noemi-nexus"
 
