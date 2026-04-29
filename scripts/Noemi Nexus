@@ -219,4 +219,15 @@ tar -czf nexus-export.tar.gz out || true
 # ---------- DONE ----------
 echo "✅ [NEXUS] Post-export pipeline complete"
 echo "📌 Log saved to: $LOG_FILE"
-echo "📦 Artifact: nexus-export.tar.gz"ainREADME.mdLICENSE.md
+echo "📦 Artifact: nexus-export.tar.gz"ainREADME.mdLICENSE.mdchmod +x init-noemi-nexus.sh
+./init-noemi-nexus.sh
+
+cd noemi-nexus
+
+git init
+git add .
+git commit -m "Noemi Nexus enterprise production system"
+
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/noemi-nexus.git
+git push -u origin mainhttps://github.com/YOUR_USERNAME/noemi-nexus.gitinit-noemi-nexus.sh-noemi-nexus.sh
